@@ -30,7 +30,7 @@
 public class TextCompressor
 {
     // 254 most common words (255 is escapeChar)
-    private static final String[] mostCommonWords = {"the", "of", "and", "to", "a", "in", "that", "is", "it", "was", "he", "for", "on", "are", "as", "with", "his", "they", "I", "at", "be", "this", "have", "from", "or", "one", "had", "by", "word", "but", "not", "what", "all", "were", "we", "when", "your", "can", "said", "there", "use", "an", "each", "which", "she", "do", "how", "their", "if", "will", "up", "other", "about", "out", "many", "then", "them", "these", "so", "some", "her", "would", "make", "like", "him", "into", "time", "has", "look", "two", "more", "write", "go", "see", "number", "no", "way", "could", "people", "my", "than", "first", "water", "been", "call", "who", "oil", "its", "now", "find", "long", "down", "day", "did", "get", "come", "made", "may"};
+    private static final String[] mostCommonWords = {"the", "of", "and", "to", "a", "in", "that", "is", "it", "was", "he", "for", "on", "are", "as", "with", "his", "they", "I", "at", "be", "this", "have", "from", "or", "one", "had", "by", "word", "but", "not", "what", " ", "were", "we", "when", "your", "can", "said", "there", "use", "an", "each", "which", "she", "do", "how", "their", "if", "will", "up", "other", "about", "out", "many", "then", "them", "these", "so", "some", "her", "would", "make", "like", "him", "into", "time", "has", "look", "two", "more", "write", "go", "see", "number", "no", "way", "could", "people", "my", "than", "first", "water", "been", "call", "who", "oil", "its", "now", "find", "long", "down", "day", "did", "get", "come", "made", "may"};
     private static final char ESCAPE_CHAR = 255;
 
     private static void compress()
@@ -49,14 +49,14 @@ public class TextCompressor
                 // add if not empty
                 if (BinaryStdIn.isEmpty())
                 {
+                    currentWord += currentChar;
                     break;
                 }
                 currentWord += currentChar;
                 currentChar = BinaryStdIn.readChar();
             }
-            // Write out the space.
-            BinaryStdOut.write(currentChar);
 
+            // Go through the common words list and see if the current word matches any of them.
             for (int i = 0; i < mostCommonWords.length; i++)
             {
                 if (currentWord.equals(mostCommonWords[i]))
@@ -82,10 +82,16 @@ public class TextCompressor
                     BinaryStdOut.write(ESCAPE_CHAR);
                     writingCodes = false;
                 }
+                // Write the normal chars of the word.
                 for (int i = 0; i < currentWord.length(); i++)
                 {
                     BinaryStdOut.write(currentWord.charAt(i));
                 }
+            }
+            // Write out the space.
+            if (currentChar == ' ')
+            {
+                BinaryStdOut.write(currentChar);
             }
         }
         BinaryStdOut.close();
@@ -94,25 +100,32 @@ public class TextCompressor
     private static void expand()
     {
         boolean writingCodes = false;
-        // TODO: Complete the expand() method
+
         while (!BinaryStdIn.isEmpty())
         {
             char currentChar = BinaryStdIn.readChar();
 
-            // If we found the escape char, flip if we are writing codes or not and get the next char.
-            if (currentChar == ESCAPE_CHAR)
+            if (currentChar == ' ')
             {
-                writingCodes = !writingCodes;
-                currentChar = BinaryStdIn.readChar();
-            }
-
-            if (writingCodes)
-            {
-                BinaryStdOut.write(mostCommonWords[currentChar]);
+                BinaryStdOut.write(' ');
             }
             else
             {
-                BinaryStdOut.write(currentChar);
+                // If we found the escape char, flip if we are writing codes or not and get the next char.
+                if (currentChar == ESCAPE_CHAR)
+                {
+                    writingCodes = !writingCodes;
+                    currentChar = BinaryStdIn.readChar();
+                }
+
+                if (writingCodes)
+                {
+                    BinaryStdOut.write(mostCommonWords[currentChar]);
+                }
+                else
+                {
+                    BinaryStdOut.write(currentChar);
+                }
             }
         }
 
