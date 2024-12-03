@@ -37,8 +37,10 @@ public class TextCompressor
     {
         boolean writingCodes = false;
 
+        // Go as long as there is more input to read.
         while (!BinaryStdIn.isEmpty())
         {
+            // Get the char, reset the word, and set foundCommonWord to false.
             char currentChar = BinaryStdIn.readChar();
             String currentWord = "";
             boolean foundCommonWord = false;
@@ -46,7 +48,7 @@ public class TextCompressor
             // Create the next word
             while (currentChar != ' ')
             {
-                // add if not empty
+                // Add chars only if not empty.
                 if (BinaryStdIn.isEmpty())
                 {
                     currentWord += currentChar;
