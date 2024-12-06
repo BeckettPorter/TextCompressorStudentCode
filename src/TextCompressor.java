@@ -29,23 +29,66 @@
  */
 public class TextCompressor
 {
+    private static TST tst = new TST();
+    private static int lastAddedCode = 127;
+
     private static void compress()
     {
-        // Go as long as there is more input to read.
+        initializeTST();
+
+        String text = BinaryStdIn.readString();
+        int index = 0;
+
+        while (index < text.length())
+        {
+            addPrefixCode(text.substring(index, index + 1));
+
+            int codeToWrite = findPrefixCode(text, index);
+
+            BinaryStdOut.write(codeToWrite);
+
+            index++;
+        }
+
+        BinaryStdOut.close();
+    }
+
+    private static void addPrefixCode(String s)
+    {
+        tst.insert(s, ++lastAddedCode);
+    }
+
+    private static int findPrefixCode(String s, int index)
+    {
+        String prefix = tst.getLongestPrefix(s, index);
+
+        if (tst.lookup(prefix) == TST.EMPTY)
+        {
+            tst.insert(prefix, ++lastAddedCode);
+        }
+
+        return tst.lookup(prefix);
+    }
+
+    private static void expand()
+    {
+        initializeTST();
+
         while (!BinaryStdIn.isEmpty())
         {
+
 
         }
         BinaryStdOut.close();
     }
 
-    private static void expand()
+    private static void initializeTST()
     {
-        while (!BinaryStdIn.isEmpty())
+        for (int i = 0; i < 128; i++)
         {
-
+            String s = String.valueOf((char) i);
+            tst.insert(s, i);
         }
-        BinaryStdOut.close();
     }
 
     public static void main(String[] args) {
