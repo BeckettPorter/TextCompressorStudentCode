@@ -80,7 +80,7 @@ public class TST {
     /**
      * Looks up the given String in the TST, returning the code associated with the word.
      * @param s The target String
-     * @return the correcponding code. If no code is associated, or if the target word is not
+     * @return the corresponding code. If no code is associated, or if the target word is not
      * present, EMPTY is returned.
      */
     public int lookup(String s) {

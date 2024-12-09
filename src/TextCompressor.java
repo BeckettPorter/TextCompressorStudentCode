@@ -30,7 +30,8 @@
 public class TextCompressor
 {
     private static TST tst = new TST();
-    private static int lastAddedCode = 127;
+    private static int currentCodeToAdd = 257;
+    private static final int EXIT_CODE = 256;
 
     private static void compress()
     {
@@ -39,52 +40,57 @@ public class TextCompressor
         String text = BinaryStdIn.readString();
         int index = 0;
 
-        while (index < text.length())
+        while (index < text.length() - 1)
         {
-            addPrefixCode(text.substring(index, index + 1));
+            String longestPrefix = tst.getLongestPrefix(text, index);
+            // First, need to write out current code.
 
-            int codeToWrite = findPrefixCode(text, index);
+            int codeToWrite = tst.lookup(longestPrefix);
 
             BinaryStdOut.write(codeToWrite);
 
+            // Second, need to add new code for longestPrefix + next char.
+
+            if (index + longestPrefix.length() < text.length())
+            {
+                tst.insert(longestPrefix + text.charAt(index + longestPrefix.length()), ++currentCodeToAdd);
+            }
+
             index++;
         }
+        BinaryStdOut.write(EXIT_CODE);
 
         BinaryStdOut.close();
-    }
-
-    private static void addPrefixCode(String s)
-    {
-        tst.insert(s, ++lastAddedCode);
-    }
-
-    private static int findPrefixCode(String s, int index)
-    {
-        String prefix = tst.getLongestPrefix(s, index);
-
-        if (tst.lookup(prefix) == TST.EMPTY)
-        {
-            tst.insert(prefix, ++lastAddedCode);
-        }
-
-        return tst.lookup(prefix);
     }
 
     private static void expand()
     {
         initializeTST();
 
-        while (!BinaryStdIn.isEmpty())
+        String text = BinaryStdIn.readString();
+        int index = 0;
+
+        String lookAheadCode;
+
+        while (text.charAt(index + 1) != EXIT_CODE)
         {
+            String longestPrefix = tst.getLongestPrefix(text, index);
+
+            lookAheadCode = text.substring(index + longestPrefix.length(), index + longestPrefix.length() + 1);
+
+            tst.insert(longestPrefix + lookAheadCode, currentCodeToAdd);
 
 
+            BinaryStdOut.write(tst.lookup(text.substring(index, index + longestPrefix.length())));
+
+            index++;
         }
         BinaryStdOut.close();
     }
 
     private static void initializeTST()
     {
-        for (int i = 0; i < 128; i++)
+        for (int i = 0; i < 256; i++)
         {
             String s = String.valueOf((char) i);
             tst.insert(s, i);
