@@ -32,6 +32,8 @@ public class TextCompressor
     private static TST tst = new TST();
     private static int currentCodeToAdd = 257;
     private static final int EXIT_CODE = 256;
+    private static final int BITS_PER_CODE = 12;
+    private static final int NUM_CODES = 1 << BITS_PER_CODE;
 
     private static void compress()
     {
@@ -47,53 +49,68 @@ public class TextCompressor
 
             int codeToWrite = tst.lookup(longestPrefix);
 
-            BinaryStdOut.write((short) codeToWrite);
+            BinaryStdOut.write(codeToWrite, BITS_PER_CODE);
 
             // Second, need to add new code for longestPrefix + next char.
 
-            if (index + longestPrefix.length() < text.length())
+            if (currentCodeToAdd < NUM_CODES)
             {
                 tst.insert(longestPrefix + text.charAt(index + longestPrefix.length()), currentCodeToAdd++);
             }
 
-            index++;
+            index += longestPrefix.length();
         }
-        BinaryStdOut.write((short) EXIT_CODE);
+        BinaryStdOut.write(EXIT_CODE, BITS_PER_CODE);
 
         BinaryStdOut.close();
     }
 
     private static void expand()
     {
-        initializeTST();
+        String[] codeStringMap = new String[NUM_CODES];
 
-        String text = BinaryStdIn.readString();
-        int index = 0;
-
-        String lookAheadCode = "";
-
-        while (index < text.length())
+        for (int i = 0; i < EXIT_CODE; i++)
         {
-            String longestPrefix = tst.getLongestPrefix(text, index);
+            codeStringMap[i] = String.valueOf((char)i);
+        }
 
-            if (index + longestPrefix.length() + 1 < text.length())
+
+        int currentCode = BinaryStdIn.readInt(BITS_PER_CODE);
+        int lookAheadCode;
+
+        // Why do I need the exit code? Why can't I just do this
+        while (currentCode != EXIT_CODE)
+        {
+            String currentString = codeStringMap[currentCode];
+
+            lookAheadCode = BinaryStdIn.readInt(BITS_PER_CODE);
+
+
+            String lookAheadString = codeStringMap[lookAheadCode];
+
+            // if edge case, lookaheadstring is cur
+            if (codeStringMap[lookAheadCode] == null)
             {
-                lookAheadCode = text.substring(index + longestPrefix.length(), index + longestPrefix.length() + 1);
+                lookAheadString = currentString + currentString.charAt(0);
             }
 
-            tst.insert(longestPrefix + lookAheadCode, currentCodeToAdd++);
+            // Add a new code to the codeStringMap if we have room in the number of codes.
+            if (currentCodeToAdd < NUM_CODES)
+            {
+                codeStringMap[currentCodeToAdd++] = currentString + lookAheadString.charAt(0);
+            }
+            // Write out the string corresponding to the current code.
+            BinaryStdOut.write(codeStringMap[currentCode]);
 
-
-            BinaryStdOut.write(tst.lookup(text.substring(index, index + longestPrefix.length())));
-
-            index++;
+            // Set the current code equal to the next code because we already read it in.
+            currentCode = lookAheadCode;
         }
         BinaryStdOut.close();
     }
 
     private static void initializeTST()
     {
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < EXIT_CODE; i++)
         {
             String s = String.valueOf((char) i);
             tst.insert(s, i);
