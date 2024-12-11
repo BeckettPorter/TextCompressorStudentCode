@@ -40,25 +40,25 @@ public class TextCompressor
         String text = BinaryStdIn.readString();
         int index = 0;
 
-        while (index < text.length() - 1)
+        while (index < text.length())
         {
             String longestPrefix = tst.getLongestPrefix(text, index);
             // First, need to write out current code.
 
             int codeToWrite = tst.lookup(longestPrefix);
 
-            BinaryStdOut.write(codeToWrite);
+            BinaryStdOut.write((short) codeToWrite);
 
             // Second, need to add new code for longestPrefix + next char.
 
             if (index + longestPrefix.length() < text.length())
             {
-                tst.insert(longestPrefix + text.charAt(index + longestPrefix.length()), ++currentCodeToAdd);
+                tst.insert(longestPrefix + text.charAt(index + longestPrefix.length()), currentCodeToAdd++);
             }
 
             index++;
         }
-        BinaryStdOut.write(EXIT_CODE);
+        BinaryStdOut.write((short) EXIT_CODE);
 
         BinaryStdOut.close();
     }
@@ -70,15 +70,18 @@ public class TextCompressor
         String text = BinaryStdIn.readString();
         int index = 0;
 
-        String lookAheadCode;
+        String lookAheadCode = "";
 
-        while (text.charAt(index + 1) != EXIT_CODE)
+        while (index < text.length())
         {
             String longestPrefix = tst.getLongestPrefix(text, index);
 
-            lookAheadCode = text.substring(index + longestPrefix.length(), index + longestPrefix.length() + 1);
+            if (index + longestPrefix.length() + 1 < text.length())
+            {
+                lookAheadCode = text.substring(index + longestPrefix.length(), index + longestPrefix.length() + 1);
+            }
 
-            tst.insert(longestPrefix + lookAheadCode, currentCodeToAdd);
+            tst.insert(longestPrefix + lookAheadCode, currentCodeToAdd++);
 
 
             BinaryStdOut.write(tst.lookup(text.substring(index, index + longestPrefix.length())));
