@@ -29,109 +29,111 @@
  */
 public class TextCompressor
 {
-    // 254 most common words (255 is escapeChar)
-    private static final String[] mostCommonWords = {"the", "of", "and", "to", "a", "in", "that", "is", "it", "was", "he", "for", "on", "are", "as", "with", "his", "they", "I", "at", "be", "this", "have", "from", "or", "one", "had", "by", "word", "but", "not", "what", " ", "were", "we", "when", "your", "can", "said", "there", "use", "an", "each", "which", "she", "do", "how", "their", "if", "will", "up", "other", "about", "out", "many", "then", "them", "these", "so", "some", "her", "would", "make", "like", "him", "into", "time", "has", "look", "two", "more", "write", "go", "see", "number", "no", "way", "could", "people", "my", "than", "first", "water", "been", "call", "who", "oil", "its", "now", "find", "long", "down", "day", "did", "get", "come", "made", "may"};
-    private static final char ESCAPE_CHAR = 255;
+    // Instance variables.
+    private static TST tst = new TST();
+    private static final int EXIT_CODE = 256;
+    // Set the initial current code to add to one more than the exit code.
+    private static int currentCodeToAdd = EXIT_CODE + 1;
+    // 12 bits per code works well for this.
+    private static final int BITS_PER_CODE = 12;
+    // Set the max number of codes equal to 2^BITS_PER_CODE.
+    private static final int NUM_CODES = 1 << BITS_PER_CODE;
 
     private static void compress()
     {
-        boolean writingCodes = false;
+        // Call to helper method that initializes the TST with values from 0 to EXIT_CODE.
+        initializeTST();
 
-        // Go as long as there is more input to read.
-        while (!BinaryStdIn.isEmpty())
+        // Read the entire string in at once.
+        String text = BinaryStdIn.readString();
+        // Only use an index to shift the window we are looking at, faster than using substring.
+        int index = 0;
+
+        // Go while there is still more of the text to read in.
+        while (index < text.length())
         {
-            // Get the char, reset the word, and set foundCommonWord to false.
-            char currentChar = BinaryStdIn.readChar();
-            String currentWord = "";
-            boolean foundCommonWord = false;
+            // First, get the longest prefix.
+            String longestPrefix = tst.getLongestPrefix(text, index);
 
-            // Create the next word
-            while (currentChar != ' ')
+            // Get the code to write by looking up the corresponding code for the prefix.
+            int codeToWrite = tst.lookup(longestPrefix);
+
+            // Write out the code using BITS_PER_CODE number of bits.
+            BinaryStdOut.write(codeToWrite, BITS_PER_CODE);
+
+            // Second, add a new code for longestPrefix + next char if it won't overflow the max number of codes
+            // or the length of the text.
+            if (currentCodeToAdd < NUM_CODES && index + longestPrefix.length() < text.length())
             {
-                // Add chars only if not empty.
-                if (BinaryStdIn.isEmpty())
-                {
-                    currentWord += currentChar;
-                    break;
-                }
-                currentWord += currentChar;
-                currentChar = BinaryStdIn.readChar();
+                tst.insert(longestPrefix + text.charAt(index + longestPrefix.length()), currentCodeToAdd++);
             }
 
-            // Go through the common words list and see if the current word matches any of them.
-            for (int i = 0; i < mostCommonWords.length; i++)
-            {
-                if (currentWord.equals(mostCommonWords[i]))
-                {
-                    // If we are not writing codes, switch to codes.
-                    if (!writingCodes)
-                    {
-                        BinaryStdOut.write(ESCAPE_CHAR);
-                        writingCodes = true;
-                    }
-                    // Write the index of the common word in the array (this is the code).
-                    BinaryStdOut.write((char) i);
-                    foundCommonWord = true;
-                    break;
-                }
-            }
-
-            if (!foundCommonWord)
-            {
-                // Since we are now writing words, if we were writing codes, switch to writing words.
-                if (writingCodes)
-                {
-                    BinaryStdOut.write(ESCAPE_CHAR);
-                    writingCodes = false;
-                }
-                // Write the normal chars of the word.
-                for (int i = 0; i < currentWord.length(); i++)
-                {
-                    BinaryStdOut.write(currentWord.charAt(i));
-                }
-            }
-            // Write out the space.
-            if (currentChar == ' ')
-            {
-                BinaryStdOut.write(currentChar);
-            }
+            // Move index forward by the prefix length.
+            index += longestPrefix.length();
         }
+        // Write out the exit code with bits per code.
+        BinaryStdOut.write(EXIT_CODE, BITS_PER_CODE);
+
         BinaryStdOut.close();
     }
 
     private static void expand()
     {
-        boolean writingCodes = false;
+        // Map that has integer codes corresponding to Strings.
+        // Make it the max length of codes we can store (NUM_CODES).
+        String[] codeStringMap = new String[NUM_CODES];
 
-        while (!BinaryStdIn.isEmpty())
+        // Fill up the first EXIT_CODE number of slots in the map.
+        for (int i = 0; i < EXIT_CODE; i++)
         {
-            char currentChar = BinaryStdIn.readChar();
-
-            if (currentChar == ' ')
-            {
-                BinaryStdOut.write(' ');
-            }
-            else
-            {
-                // If we found the escape char, flip if we are writing codes or not and get the next char.
-                if (currentChar == ESCAPE_CHAR)
-                {
-                    writingCodes = !writingCodes;
-                    currentChar = BinaryStdIn.readChar();
-                }
-
-                if (writingCodes)
-                {
-                    BinaryStdOut.write(mostCommonWords[currentChar]);
-                }
-                else
-                {
-                    BinaryStdOut.write(currentChar);
-                }
-            }
+            codeStringMap[i] = String.valueOf((char)i);
         }
 
+        // Read in the first code.
+        int currentCode = BinaryStdIn.readInt(BITS_PER_CODE);
+        int lookAheadCode;
+
+        // Go until the exit code is found.
+        while (currentCode != EXIT_CODE)
+        {
+            // Set the current string equal to the string corresponding to the current code in the map.
+            String currentString = codeStringMap[currentCode];
+
+            // The look ahead code is the next code we read in.
+            lookAheadCode = BinaryStdIn.readInt(BITS_PER_CODE);
+
+            // The look ahead string is the string corresponding to this look ahead code in the map.
+            String lookAheadString = codeStringMap[lookAheadCode];
+
+            // This check prevents the edge case issue, where if the code hasn't been initialized in the map yet,
+            // set the look ahead string to the current string + the first letter of the current string.
+            if (codeStringMap[lookAheadCode] == null)
+            {
+                lookAheadString = currentString + currentString.charAt(0);
+            }
+
+            // Add a new code to the codeStringMap if we have room in the number of codes.
+            if (currentCodeToAdd < NUM_CODES)
+            {
+                codeStringMap[currentCodeToAdd++] = currentString + lookAheadString.charAt(0);
+            }
+            // Write out the string corresponding to the current code.
+            BinaryStdOut.write(codeStringMap[currentCode]);
+
+            // Set the current code equal to the next code because we already read it in.
+            currentCode = lookAheadCode;
+        }
         BinaryStdOut.close();
+    }
+
+    // Initializes the TST with values from 0 to EXIT_CODE.
+    private static void initializeTST()
+    {
+        for (int i = 0; i < EXIT_CODE; i++)
+        {
+            String s = String.valueOf((char) i);
+            tst.insert(s, i);
+        }
     }
 
     public static void main(String[] args) {
